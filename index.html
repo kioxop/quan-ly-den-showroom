@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Calm Harmony (Slate/Gray background, Muted Blue for actions, Green/Orange/Yellow for status) -->
     <!-- Application Structure Plan: A two-tab SPA. Tab 1 is a Dashboard & Management view showing current inventory status via a donut chart, key stats, an interactive table for loan/return actions, and a dedicated table for currently loaned items. Tab 2 shows a complete, searchable loan history. This structure separates the 'live' operational view from the 'archival' historical log, which is a more intuitive workflow than Excel sheets. Modals are used for data entry tasks (loaning, returning, adding items) to guide the user and prevent errors. -->
-    <!-- Visualization & Content Choices: 1. Inventory Status (Available vs. Loaned): Goal=Inform, Viz=Donut Chart, Interaction=Hover, Justification=At-a-glance overview, Lib=Chart.js/Canvas. 2. Sample List: Goal=Manage, Viz=Interactive HTML Table, Interaction=Search/Sort/Buttons, Justification=Core management interface, Lib=HTML+JS. 3. Loan/Return/Add Forms: Goal=Task Execution, Viz=Modal Forms, Interaction=User Input, Justification=Guided data entry, Lib=HTML+JS. 4. Loan History: Goal=Audit, Viz=Interactive HTML Table, Interaction=Search/Sort, Justification=Easy historical lookup, Lib=HTML+JS. 5. Product Description Generator: Goal=Enhance Data Entry, Viz=Text Area, Interaction=Button click to generate with LLM, Justification=Automate content creation for new items, Lib=Gemini API (gemini-2.0-flash). 6. Sample Image Display: Goal=Visual Identification, Viz=Image, Interaction=None, Justification=Quick visual lookup for items, Lib=HTML (img tag). 7. Project Tracking: Goal=Categorize Loans, Viz=Input Field in Modal, Column in History Table, Interaction=User Input, Justification=Associate loans with specific projects for better tracking and reporting. 8. Loaned Samples Table: Goal=Track Outstanding Loans, Viz=Filtered HTML Table, Interaction=Directly from Dashboard, Justification=Provides a quick overview of currently unreturned items for follow-up. -->
+    <!-- Visualization & Content Choices: 1. Inventory Status (Available vs. Loaned): Goal=Inform, Viz=Donut Chart, Interaction=Hover, Justification=At-a-glance overview, Lib=Chart.js/Canvas. 2. Sample List: Goal=Manage, Viz=Interactive HTML Table, Interaction=Search/Sort/Buttons, Justification=Core management interface, Lib=HTML+JS. 3. Loan/Return/Add Forms: Goal=Task Execution, Viz=Modal Forms, Interaction=User Input, Justification=Guided data entry, Lib=HTML+JS. 4. Loan History: Goal=Audit, Viz=Interactive HTML Table, Interaction=Search/Sort, Justification=Easy historical lookup, Lib=HTML+JS. 5. Product Description Generator: Goal=Enhance Data Entry, Viz=Text Area, Interaction=Button click to generate with LLM, Justification=Automate content creation for new items, Lib=Gemini API (gemini-2.0-flash). 6. Sample Image Display: Goal=Visual Identification, Viz=Image, Interaction=None, Justification=Quick visual lookup for items, Lib=HTML (img tag). 7. Project Tracking: Goal=Categorize Loans, Viz=Input Field in Modal, Column in History Table, Interaction=User Input, Justification=Associate loans with specific projects for better tracking and reporting. 8. Loaned Samples Table: Goal=Track Outstanding Loans, Viz=Filtered HTML Table, Interaction=Directly from Dashboard, Justification=Provides a quick overview of currently unreturned items for follow-up. 9. Edit Sample Form: Goal=Update Item Details, Viz=Modal Form, Interaction=User Input to modify existing data fields (name, location, image, description), Justification=Allows full data management for existing items, reducing need for re-entry. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -218,6 +218,45 @@
         </div>
     </div>
     
+    <div id="modal-edit-sample" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6 border-b">
+                <h3 class="text-lg font-medium">Chỉnh Sửa Mẫu Đèn: <span id="edit-item-name" class="font-bold"></span></h3>
+            </div>
+            <form id="form-edit-sample" class="p-6 space-y-4">
+                <input type="hidden" id="edit-ma-den">
+                <div>
+                    <label for="edit-ten-mau-den" class="block text-sm font-medium text-slate-700">Tên Mẫu Đèn</label>
+                    <input type="text" id="edit-ten-mau-den" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                 <div>
+                    <label for="edit-vi-tri" class="block text-sm font-medium text-slate-700">Vị Trí Trưng Bày/Kiểu Đèn</label>
+                    <input type="text" id="edit-vi-tri" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="VD: Đèn trần, Đèn bàn, Đèn trang trí...">
+                </div>
+                <div>
+                    <label for="edit-hinh-anh-url" class="block text-sm font-medium text-slate-700">URL Hình Ảnh (Tùy chọn)</label>
+                    <input type="url" id="edit-hinh-anh-url" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="http://example.com/image.jpg">
+                </div>
+                <div>
+                    <label for="edit-mo-ta-san-pham" class="block text-sm font-medium text-slate-700">Mô Tả Sản Phẩm</label>
+                    <div class="flex items-center gap-2 mt-1">
+                        <textarea id="edit-mo-ta-san-pham" rows="4" class="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        <button type="button" id="btn-generate-description-edit" class="bg-purple-600 text-white text-sm font-semibold p-2 rounded-lg hover:bg-purple-700 transition-colors flex-shrink-0 flex items-center justify-center">
+                            Tạo Mô Tả ✨
+                        </button>
+                    </div>
+                    <div id="description-loading-edit" class="hidden text-sm text-slate-500 mt-2 flex items-center">
+                        <div class="loading-spinner mr-2"></div> Đang tạo mô tả...
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" class="btn-cancel-modal bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200">Hủy</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Lưu Thay Đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="modal-loan-sample" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div class="p-6 border-b">
@@ -305,6 +344,9 @@
             const modalAddSample = document.getElementById('modal-add-sample');
             const formAddSample = document.getElementById('form-add-sample');
 
+            const modalEditSample = document.getElementById('modal-edit-sample'); // New Edit Modal
+            const formEditSample = document.getElementById('form-edit-sample'); // New Edit Form
+
             const modalLoanSample = document.getElementById('modal-loan-sample');
             const formLoanSample = document.getElementById('form-loan-sample');
 
@@ -317,6 +359,15 @@
             const newMoTaSanPham = document.getElementById('new-mo-ta-san-pham');
             const descriptionLoading = document.getElementById('description-loading');
             const newHinhAnhUrl = document.getElementById('new-hinh-anh-url');
+
+            const btnGenerateDescriptionEdit = document.getElementById('btn-generate-description-edit'); // New for edit modal
+            const editMoTaSanPham = document.getElementById('edit-mo-ta-san-pham'); // New for edit modal
+            const descriptionLoadingEdit = document.getElementById('description-loading-edit'); // New for edit modal
+            const editHinhAnhUrl = document.getElementById('edit-hinh-anh-url'); // New for edit modal
+            const editTenMauDen = document.getElementById('edit-ten-mau-den'); // New for edit modal
+            const editViTri = document.getElementById('edit-vi-tri'); // New for edit modal
+            const editMaDen = document.getElementById('edit-ma-den'); // New for edit modal
+            const editItemName = document.getElementById('edit-item-name'); // New for edit modal
 
             const loanDuAnInput = document.getElementById('loan-du-an');
             
@@ -357,9 +408,10 @@
                             </span>
                         </td>
                         <td class="px-6 py-4">${item.nguoiMuon || '---'}</td>
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 flex items-center space-x-2">
                             ${item.tinhTrang === 'Tại Showroom' ? `<button class="btn-loan text-blue-600 hover:text-blue-800 font-semibold" data-ma-den="${item.maDen}">Cho Mượn</button>` : ''}
                             ${item.tinhTrang === 'Đã Mượn' ? `<button class="btn-return text-green-600 hover:text-green-800 font-semibold" data-ma-den="${item.maDen}">Nhận Lại</button>` : ''}
+                            <button class="btn-edit text-slate-600 hover:text-slate-800 font-semibold" data-ma-den="${item.maDen}">Sửa</button>
                         </td>
                     `;
                     samplesTableBody.appendChild(row);
@@ -526,7 +578,7 @@
                 e.target.reset();
             });
 
-            // Gemini API Integration: Generate Product Description
+            // Gemini API Integration: Generate Product Description for Add Modal
             btnGenerateDescription.addEventListener('click', async () => {
                 const tenMauDen = document.getElementById('new-ten-mau-den').value;
                 const viTri = document.getElementById('new-vi-tri').value;
@@ -571,6 +623,87 @@
                 } finally {
                     descriptionLoading.classList.add('hidden');
                     btnGenerateDescription.disabled = false;
+                }
+            });
+
+            // Edit Sample (New Feature)
+            samplesTableBody.addEventListener('click', e => {
+                if(e.target.classList.contains('btn-edit')) {
+                    const maDen = e.target.dataset.maDen;
+                    const sample = samplesData.find(s => s.maDen === maDen);
+                    if (sample) {
+                        editItemName.textContent = sample.tenMauDen;
+                        editMaDen.value = sample.maDen;
+                        editTenMauDen.value = sample.tenMauDen;
+                        editViTri.value = sample.viTri;
+                        editHinhAnhUrl.value = sample.hinhAnh;
+                        editMoTaSanPham.value = sample.moTa;
+                        openModal(modalEditSample);
+                    }
+                }
+            });
+
+            // Gemini API Integration: Generate Product Description for Edit Modal
+            btnGenerateDescriptionEdit.addEventListener('click', async () => {
+                const tenMauDen = document.getElementById('edit-ten-mau-den').value;
+                const viTri = document.getElementById('edit-vi-tri').value;
+
+                if (!tenMauDen) {
+                    editMoTaSanPham.value = 'Vui lòng nhập "Tên Mẫu Đèn" để tạo mô tả.';
+                    return;
+                }
+
+                descriptionLoadingEdit.classList.remove('hidden');
+                btnGenerateDescriptionEdit.disabled = true;
+                editMoTaSanPham.value = '';
+
+                const prompt = `Viết một mô tả sản phẩm ngắn gọn, hấp dẫn và sáng tạo cho một mẫu đèn trưng bày trong showroom. Mẫu đèn có tên: "${tenMauDen}". Vị trí trưng bày/kiểu đèn gợi ý: "${viTri}". Hãy tập trung vào việc làm nổi bật vẻ đẹp, chức năng và cảm xúc mà nó mang lại cho không gian.`;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        editMoTaSanPham.value = text;
+                    } else {
+                        editMoTaSanPham.value = 'Không thể tạo mô tả. Vui lòng thử lại.';
+                        console.error('API response error:', result);
+                    }
+                } catch (error) {
+                    editMoTaSanPham.value = 'Lỗi kết nối API. Vui lòng kiểm tra mạng và thử lại.';
+                    console.error('Fetch error:', error);
+                } finally {
+                    descriptionLoadingEdit.classList.add('hidden');
+                    btnGenerateDescriptionEdit.disabled = false;
+                }
+            });
+
+
+            formEditSample.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const maDenToEdit = document.getElementById('edit-ma-den').value;
+                const sampleIndex = samplesData.findIndex(s => s.maDen === maDenToEdit);
+
+                if (sampleIndex !== -1) {
+                    samplesData[sampleIndex].tenMauDen = editTenMauDen.value;
+                    samplesData[sampleIndex].viTri = editViTri.value;
+                    samplesData[sampleIndex].hinhAnh = editHinhAnhUrl.value;
+                    samplesData[sampleIndex].moTa = editMoTaSanPham.value;
+                    updateAll();
+                    closeModal(modalEditSample);
                 }
             });
 
