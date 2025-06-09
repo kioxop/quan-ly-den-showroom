@@ -375,8 +375,8 @@
             });
 
             // Local data arrays (will be updated by Firestore snapshots)
-            window.samplesData = []; // Use window. to make it globally accessible by other scripts
-            window.historyData = []; // Use window. to make it globally accessible by other scripts
+            window.samplesData = []; // Initialize as empty array
+            window.historyData = []; // Initialize as empty array
 
             const listenToFirestoreData = () => {
                 if (!isAuthReady) {
@@ -855,12 +855,13 @@
                     await addDoc(historyCollection, {
                         maDen: sample.maDen,
                         tenMauDen: sample.tenMauDen,
-                        viTriKhiMuon: sample.viTri,
+                        viTriKhiMuon: sample.viTri, // Store viTri when borrowed
                         nguoiMuon: document.getElementById('loan-nguoi-muon').value,
                         sdtEmail: document.getElementById('loan-sdt-email').value,
                         ngayMuon: today,
                         ngayTraDuKien: document.getElementById('loan-ngay-tra-du-kien').value,
                         duAn: document.getElementById('loan-du-an').value,
+                        tinhTrangKhiMuon: document.getElementById('loan-tinh-trang-khi-muon').value,
                         ngayTraThucTe: '',
                         tinhTrangKhiTra: '',
                         sampleDocId: docId // Reference to the samples document
