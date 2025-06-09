@@ -38,12 +38,15 @@
         }
     </style>
 </head>
-<body class="bg-slate-50_text-slate-800">
+<body class="bg-slate-50 text-slate-800">
 
     <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         <header class="mb-8">
             <h1 class="text-3xl font-bold text-slate-900">Trình Quản Lý Mẫu Đèn Showroom</h1>
             <p class="text-slate-600 mt-1">Công cụ giúp bạn theo dõi và quản lý các mẫu đèn một cách hiệu quả.</p>
+            <div class="text-xs text-slate-500 mt-2">
+                User ID: <span id="user-id">Đang tải...</span>
+            </div>
         </header>
 
         <div class="border-b border-slate-200 mb-6">
@@ -162,7 +165,6 @@
                                     <th scope="col" class="px-6 py-3">ID Lượt</th>
                                     <th scope="col" class="px-6 py-3">Mã Đèn</th>
                                     <th scope="col" class="px-6 py-3">Tên Mẫu Đèn</th>
-                                    <!-- Removed: <th scope="col" class="px-6 py-3">Vị trí Mẫu Đèn</th> -->
                                     <th scope="col" class="px-6 py-3">Người Mượn</th>
                                     <th scope="col" class="px-6 py-3">Dự án</th>
                                     <th scope="col" class="px-6 py-3">Ngày Mượn</th>
@@ -318,31 +320,94 @@
         </div>
     </div>
 
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    <script>
+        // Global variables (will be provided by Canvas environment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let userId = 'anonymous'; // Default to anonymous
+        let samplesCollection;
+        let historyCollection;
+
+        // Ensure DOM is fully loaded before trying to access elements or functions
         document.addEventListener('DOMContentLoaded', () => {
-            
-            // --- DATA ---
-            let samplesData = [
-                { maDen: 'TR001', tenMauDen: 'Đèn trần pha lê tròn', viTri: 'Kệ 1', tinhTrang: 'Tại Showroom', nguoiMuon: '', sdtEmail: '', ngayMuon: '', ngayTraDuKien: '', duAn: '', moTa: 'Một chiếc đèn trần pha lê tròn lộng lẫy, mang đến vẻ sang trọng và đẳng cấp cho không gian.', hinhAnh: 'https://placehold.co/60x60/a78bfa/ffffff?text=TR001' },
-                { maDen: 'TR002', tenMauDen: 'Đèn trần gỗ sồi vuông', viTri: 'Kệ 1', tinhTrang: 'Tại Showroom', nguoiMuon: '', sdtEmail: '', ngayMuon: '', ngayTraDuKien: '', duAn: '', moTa: 'Đèn trần gỗ sồi vuông với thiết kế tối giản, tạo cảm giác ấm cúng và gần gũi với thiên nhiên.', hinhAnh: 'https://placehold.co/60x60/8b5cf6/ffffff?text=TR002' },
-                { maDen: 'DB001', tenMauDen: 'Đèn bàn đọc sách LED', viTri: 'Khu vực bàn làm việc', tinhTrang: 'Đã Mượn', nguoiMuon: 'Anh Khoa', sdtEmail: '090xxxxxxx', ngayMuon: '2025-06-01', ngayTraDuKien: '2025-06-08', duAn: 'Dự án A', moTa: 'Đèn bàn đọc sách LED hiện đại, cung cấp ánh sáng dịu nhẹ, bảo vệ mắt, lý tưởng cho việc học tập và làm việc.', hinhAnh: 'https://placehold.co/60x60/c084fc/ffffff?text=DB001' },
-                { maDen: 'DC001', tenMauDen: 'Đèn cây đứng hiện đại', viTri: 'Góc phòng khách', tinhTrang: 'Tại Showroom', nguoiMuon: '', sdtEmail: '', ngayMuon: '', ngayTraDuKien: '', duAn: '', moTa: 'Chiếc đèn cây đứng với thiết kế thanh lịch, mang đến nguồn sáng ấn tượng và tô điểm cho không gian sống.', hinhAnh: 'https://placehold.co/60x60/e879f9/ffffff?text=DC001' },
-                 { maDen: 'TT001', tenMauDen: 'Đèn thả bàn ăn cổ điển', viTri: 'Khu vực bếp', tinhTrang: 'Đang Bảo Trì', nguoiMuon: '', sdtEmail: '', ngayMuon: '', ngayTraDuKien: '', duAn: '', moTa: 'Đèn thả bàn ăn phong cách cổ điển, tạo điểm nhấn ấm cúng và sang trọng cho khu vực dùng bữa.', hinhAnh: 'https://placehold.co/60x60/f0abfc/ffffff?text=TT001' },
-            ];
+            const userIdDisplay = document.getElementById('user-id');
+            let isAuthReady = false; // Flag to ensure auth is ready before Firestore ops
 
-            let historyData = [
-                { id: 'LS001', maDen: 'DB001', tenMauDen: 'Đèn bàn đọc sách LED', nguoiMuon: 'Anh Khoa', sdtEmail: '090xxxxxxx', ngayMuon: '2025-06-01', ngayTraDuKien: '2025-06-08', duAn: 'Dự án A', viTriKhiMuon: 'Khu vực bàn làm việc', ngayTraThucTe: '', tinhTrangKhiMuon: 'Tốt, không trầy xước', tinhTrangKhiTra: '' },
-                { id: 'LS002', maDen: 'DC001', tenMauDen: 'Đèn cây đứng hiện đại', nguoiMuon: 'Chị Lan', sdtEmail: 'lan@email.com', ngayMuon: '2025-05-20', ngayTraDuKien: '2025-05-27', duAn: 'Dự án B', viTriKhiMuon: 'Góc phòng khách', ngayTraThucTe: '2025-05-26', tinhTrangKhiMuon: 'Tốt', tinhTrangKhiTra: 'Hoàn hảo' },
-            ];
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    userIdDisplay.textContent = userId;
+                    samplesCollection = collection(db, `artifacts/${appId}/users/${userId}/samples`);
+                    historyCollection = collection(db, `artifacts/${appId}/users/${userId}/history`);
+                    isAuthReady = true;
+                    // Start listening to Firestore after authentication is ready
+                    listenToFirestoreData();
+                } else {
+                    // Sign in anonymously if no token is provided or user logs out
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Firebase Auth Error:", error);
+                        userIdDisplay.textContent = 'Lỗi đăng nhập';
+                        // Still try to listen to data even if anonymous sign-in fails
+                        samplesCollection = collection(db, `artifacts/${appId}/users/${userId}/samples`);
+                        historyCollection = collection(db, `artifacts/${appId}/users/${userId}/history`);
+                        isAuthReady = true;
+                        listenToFirestoreData();
+                    }
+                }
+            });
 
-            // --- UI ELEMENTS ---
+            // Local data arrays (will be updated by Firestore snapshots)
+            window.samplesData = []; // Use window. to make it globally accessible by other scripts
+            window.historyData = []; // Use window. to make it globally accessible by other scripts
+
+            const listenToFirestoreData = () => {
+                if (!isAuthReady) {
+                    console.warn("Firestore listeners called before authentication is ready.");
+                    return;
+                }
+                
+                // Real-time listener for samples
+                onSnapshot(query(samplesCollection), (snapshot) => {
+                    window.samplesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateAll(); // Re-render tables and dashboard
+                }, (error) => {
+                    console.error("Error fetching samples: ", error);
+                });
+
+                // Real-time listener for history
+                onSnapshot(query(historyCollection), (snapshot) => {
+                    window.historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateAll(); // Re-render tables and dashboard
+                }, (error) => {
+                    console.error("Error fetching history: ", error);
+                });
+            };
+
+            // --- UI ELEMENTS (remains mostly the same, but now uses window.samplesData/historyData) ---
             const tabDashboard = document.getElementById('tab-dashboard');
             const tabHistory = document.getElementById('tab-history');
             const contentDashboard = document.getElementById('content-dashboard');
             const contentHistory = document.getElementById('content-history');
             const samplesTableBody = document.getElementById('samples-table-body');
-            const outstandingLoansTableBody = document.getElementById('outstanding-loans-table-body'); // New table body
+            const outstandingLoansTableBody = document.getElementById('outstanding-loans-table-body');
             const historyTableBody = document.getElementById('history-table-body');
             const searchSamplesInput = document.getElementById('search-samples');
             const searchHistoryInput = document.getElementById('search-history');
@@ -351,8 +416,8 @@
             const modalAddSample = document.getElementById('modal-add-sample');
             const formAddSample = document.getElementById('form-add-sample');
 
-            const modalEditSample = document.getElementById('modal-edit-sample'); // New Edit Modal
-            const formEditSample = document.getElementById('form-edit-sample'); // New Edit Form
+            const modalEditSample = document.getElementById('modal-edit-sample');
+            const formEditSample = document.getElementById('form-edit-sample');
 
             const modalLoanSample = document.getElementById('modal-loan-sample');
             const formLoanSample = document.getElementById('form-loan-sample');
@@ -367,14 +432,14 @@
             const descriptionLoading = document.getElementById('description-loading');
             const newHinhAnhUrl = document.getElementById('new-hinh-anh-url');
 
-            const btnGenerateDescriptionEdit = document.getElementById('btn-generate-description-edit'); // New for edit modal
-            const editMoTaSanPham = document.getElementById('edit-mo-ta-san-pham'); // New for edit modal
-            const descriptionLoadingEdit = document.getElementById('description-loading-edit'); // New for edit modal
-            const editHinhAnhUrl = document.getElementById('edit-hinh-anh-url'); // New for edit modal
-            const editTenMauDen = document.getElementById('edit-ten-mau-den'); // New for edit modal
-            const editViTri = document.getElementById('edit-vi-tri'); // New for edit modal
-            const editMaDen = document.getElementById('edit-ma-den'); // New for edit modal
-            const editItemName = document.getElementById('edit-item-name'); // New for edit modal
+            const btnGenerateDescriptionEdit = document.getElementById('btn-generate-description-edit');
+            const editMoTaSanPham = document.getElementById('edit-mo-ta-san-pham');
+            const descriptionLoadingEdit = document.getElementById('description-loading-edit');
+            const editHinhAnhUrl = document.getElementById('edit-hinh-anh-url');
+            const editTenMauDen = document.getElementById('edit-ten-mau-den');
+            const editViTri = document.getElementById('edit-vi-tri');
+            const editMaDen = document.getElementById('edit-ma-den');
+            const editItemName = document.getElementById('edit-item-name');
 
             const loanDuAnInput = document.getElementById('loan-du-an');
             
@@ -390,7 +455,7 @@
                 }
             };
             
-            const renderSamplesTable = (data = samplesData) => {
+            const renderSamplesTable = (data = window.samplesData) => {
                 samplesTableBody.innerHTML = '';
                 if (data.length === 0) {
                      samplesTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-slate-500">Không tìm thấy mẫu đèn nào.</td></tr>`;
@@ -417,9 +482,9 @@
                         </td>
                         <td class="px-6 py-4">${item.nguoiMuon || '---'}</td>
                         <td class="px-6 py-4 flex items-center space-x-2">
-                            ${item.tinhTrang === 'Tại Showroom' ? `<button class="btn-loan text-blue-600 hover:text-blue-800 font-semibold" data-ma-den="${item.maDen}">Cho Mượn</button>` : ''}
-                            ${item.tinhTrang === 'Đã Mượn' ? `<button class="btn-return text-green-600 hover:text-green-800 font-semibold" data-ma-den="${item.maDen}">Nhận Lại</button>` : ''}
-                            <button class="btn-edit text-slate-600 hover:text-slate-800 font-semibold" data-ma-den="${item.maDen}">Sửa</button>
+                            ${item.tinhTrang === 'Tại Showroom' ? `<button class="btn-loan text-blue-600 hover:text-blue-800 font-semibold" data-ma-den="${item.maDen}" data-doc-id="${item.id}">Cho Mượn</button>` : ''}
+                            ${item.tinhTrang === 'Đã Mượn' ? `<button class="btn-return text-green-600 hover:text-green-800 font-semibold" data-ma-den="${item.maDen}" data-doc-id="${item.id}">Nhận Lại</button>` : ''}
+                            <button class="btn-edit text-slate-600 hover:text-slate-800 font-semibold" data-ma-den="${item.maDen}" data-doc-id="${item.id}">Sửa</button>
                         </td>
                     `;
                     samplesTableBody.appendChild(row);
@@ -427,7 +492,7 @@
             };
 
             const renderOutstandingLoansTable = () => {
-                const loanedItems = samplesData.filter(s => s.tinhTrang === 'Đã Mượn');
+                const loanedItems = window.samplesData.filter(s => s.tinhTrang === 'Đã Mượn');
                 outstandingLoansTableBody.innerHTML = '';
                 if (loanedItems.length === 0) {
                      outstandingLoansTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-500">Không có mẫu đèn nào đang được cho mượn.</td></tr>`;
@@ -445,14 +510,14 @@
                         <td class="px-6 py-4">${item.ngayMuon || '---'}</td>
                         <td class="px-6 py-4">${item.ngayTraDuKien || '---'}</td>
                         <td class="px-6 py-4">
-                            <button class="btn-return text-green-600 hover:text-green-800 font-semibold" data-ma-den="${item.maDen}">Nhận Lại</button>
+                            <button class="btn-return text-green-600 hover:text-green-800 font-semibold" data-ma-den="${item.maDen}" data-doc-id="${item.id}">Nhận Lại</button>
                         </td>
                     `;
                     outstandingLoansTableBody.appendChild(row);
                 });
             };
 
-            const renderHistoryTable = (data = historyData) => {
+            const renderHistoryTable = (data = window.historyData) => {
                 historyTableBody.innerHTML = '';
                  if (data.length === 0) {
                      historyTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-500">Không có dữ liệu lịch sử.</td></tr>`;
@@ -462,10 +527,9 @@
                     const row = document.createElement('tr');
                     row.className = 'bg-white border-b hover:bg-slate-50';
                     row.innerHTML = `
-                        <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">${item.id}</td>
+                        <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">${item.id || item.docId}</td>
                         <td class="px-6 py-4">${item.maDen}</td>
                         <td class="px-6 py-4">${item.tenMauDen}</td>
-                        
                         <td class="px-6 py-4">${item.nguoiMuon}</td>
                         <td class="px-6 py-4">${item.duAn || '---'}</td>
                         <td class="px-6 py-4">${item.ngayMuon}</td>
@@ -477,10 +541,10 @@
             };
             
             const renderDashboard = () => {
-                const total = samplesData.length;
-                const loaned = samplesData.filter(s => s.tinhTrang === 'Đã Mượn').length;
-                const available = samplesData.filter(s => s.tinhTrang === 'Tại Showroom').length;
-                const maintenance = samplesData.filter(s => s.tinhTrang === 'Đang Bảo Trì').length;
+                const total = window.samplesData.length;
+                const loaned = window.samplesData.filter(s => s.tinhTrang === 'Đã Mượn').length;
+                const available = window.samplesData.filter(s => s.tinhTrang === 'Tại Showroom').length;
+                const maintenance = window.samplesData.filter(s => s.tinhTrang === 'Đang Bảo Trì').length;
 
                 document.getElementById('total-samples').textContent = total;
                 document.getElementById('loaned-samples').textContent = loaned;
@@ -518,7 +582,7 @@
             
             const updateAll = () => {
                 renderSamplesTable();
-                renderOutstandingLoansTable(); // Call new render function
+                renderOutstandingLoansTable();
                 renderHistoryTable();
                 renderDashboard();
             }
@@ -540,22 +604,21 @@
             
             searchSamplesInput.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
-                const filteredData = samplesData.filter(item => 
+                const filteredData = window.samplesData.filter(item => 
                     item.maDen.toLowerCase().includes(searchTerm) ||
                     item.tenMauDen.toLowerCase().includes(searchTerm) ||
-                    item.viTri.toLowerCase().includes(searchTerm) // Include viTri in search
+                    item.viTri.toLowerCase().includes(searchTerm)
                 );
                 renderSamplesTable(filteredData);
             });
             
              searchHistoryInput.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
-                const filteredData = historyData.filter(item => 
+                const filteredData = window.historyData.filter(item => 
                     item.id.toLowerCase().includes(searchTerm) ||
                     item.maDen.toLowerCase().includes(searchTerm) ||
                     item.tenMauDen.toLowerCase().includes(searchTerm) ||
-                    // item.viTriKhiMuon.toLowerCase().includes(searchTerm)) || // Exclude viTriKhiMuon from history search if not displayed
-                    item.nguoiMuon.toLowerCase().includes(searchTerm) ||
+                    (item.nguoiMuon && item.nguoiMuon.toLowerCase().includes(searchTerm)) ||
                     (item.duAn && item.duAn.toLowerCase().includes(searchTerm))
                 );
                 renderHistoryTable(filteredData);
@@ -566,29 +629,33 @@
             const closeModal = (modal) => modal.classList.add('hidden');
             
             btnAddNew.addEventListener('click', () => {
-                formAddSample.reset(); // Reset form when opening
-                newMoTaSanPham.value = ''; // Clear description
-                newHinhAnhUrl.value = ''; // Clear image URL
+                formAddSample.reset();
+                newMoTaSanPham.value = '';
+                newHinhAnhUrl.value = '';
                 openModal(modalAddSample);
             });
             cancelButtons.forEach(btn => btn.addEventListener('click', (e) => closeModal(e.target.closest('.modal-backdrop'))));
 
             // Add new sample
-            formAddSample.addEventListener('submit', (e) => {
+            formAddSample.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const newSample = {
+                const newSampleData = {
                     maDen: document.getElementById('new-ma-den').value,
                     tenMauDen: document.getElementById('new-ten-mau-den').value,
                     viTri: document.getElementById('new-vi-tri').value,
-                    tinhTrang: 'Tại Showroom',
+                    tinhTrang: 'Tại Showroom', // Default status
                     nguoiMuon: '', sdtEmail: '', ngayMuon: '', ngayTraDuKien: '', duAn: '', 
                     moTa: newMoTaSanPham.value,
                     hinhAnh: newHinhAnhUrl.value
                 };
-                samplesData.unshift(newSample);
-                updateAll();
-                closeModal(modalAddSample);
-                e.target.reset();
+                try {
+                    await addDoc(samplesCollection, newSampleData);
+                    closeModal(modalAddSample);
+                    e.target.reset();
+                } catch (error) {
+                    console.error("Error adding document: ", error);
+                    alert("Có lỗi khi thêm mẫu đèn. Vui lòng thử lại.");
+                }
             });
 
             // Gemini API Integration: Generate Product Description for Add Modal
@@ -639,15 +706,16 @@
                 }
             });
 
-            // Edit Sample (New Feature)
+            // Edit Sample
             samplesTableBody.addEventListener('click', e => {
                 if(e.target.classList.contains('btn-edit')) {
-                    const maDen = e.target.dataset.maDen;
-                    const sample = samplesData.find(s => s.maDen === maDen);
+                    const docId = e.target.dataset.docId;
+                    const sample = window.samplesData.find(s => s.id === docId);
                     if (sample) {
                         editItemName.textContent = sample.tenMauDen;
                         editMaDen.value = sample.maDen;
-                        editMaDen.dataset.originalMaDen = sample.maDen; // Store original maDen in a data attribute
+                        editMaDen.dataset.originalMaDen = sample.maDen; // Store original maDen
+                        editMaDen.dataset.docId = docId; // Store docId for update
                         editTenMauDen.value = sample.tenMauDen;
                         editViTri.value = sample.viTri;
                         editHinhAnhUrl.value = sample.hinhAnh;
@@ -705,131 +773,179 @@
                 }
             });
 
-
-            formEditSample.addEventListener('submit', (e) => {
+            formEditSample.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const originalMaDen = document.getElementById('edit-ma-den').dataset.originalMaDen; // Retrieve original maDen from data attribute
-                const newMaDen = document.getElementById('edit-ma-den').value;
-                const sampleIndex = samplesData.findIndex(s => s.maDen === originalMaDen);
+                const originalMaDen = editMaDen.dataset.originalMaDen;
+                const docIdToUpdate = editMaDen.dataset.docId; // Get the Firestore document ID
+                const newMaDen = editMaDen.value;
 
-                if (sampleIndex !== -1) {
-                    // Check for duplicate newMaDen, excluding the item being edited itself
-                    const isDuplicate = samplesData.some(s => s.maDen === newMaDen && s.maDen !== originalMaDen);
+                // Check for duplicate newMaDen if it's being changed
+                if (newMaDen !== originalMaDen) {
+                    const isDuplicate = window.samplesData.some(s => s.maDen === newMaDen);
                     if (isDuplicate) {
-                        alert('Mã Đèn mới đã tồn tại. Vui lòng chọn Mã Đèn khác.'); // Use alert for simplicity, could be a custom modal
+                        alert('Mã Đèn mới đã tồn tại. Vui lòng chọn Mã Đèn khác.');
                         return;
                     }
+                }
 
-                    // Update maDen in samplesData
-                    samplesData[sampleIndex].maDen = newMaDen;
-                    samplesData[sampleIndex].tenMauDen = editTenMauDen.value;
-                    samplesData[sampleIndex].viTri = editViTri.value;
-                    samplesData[sampleIndex].hinhAnh = editHinhAnhUrl.value;
-                    samplesData[sampleIndex].moTa = editMoTaSanPham.value;
+                try {
+                    // Update the sample document in Firestore
+                    await setDoc(doc(samplesCollection, docIdToUpdate), {
+                        maDen: newMaDen,
+                        tenMauDen: editTenMauDen.value,
+                        viTri: editViTri.value,
+                        hinhAnh: editHinhAnhUrl.value,
+                        moTa: editMoTaSanPham.value,
+                        // Preserve existing fields like tinhTrang, nguoiMuon, etc.
+                        // Fetch the current sample data to merge, or use updateDoc for specific fields
+                        ...window.samplesData.find(s => s.id === docIdToUpdate)
+                    }, { merge: true });
 
-                    // Update maDen in historyData for all relevant entries
-                    historyData.forEach(item => {
-                        if (item.maDen === originalMaDen) {
-                            item.maDen = newMaDen;
+                    // Update maDen in history documents
+                    const historyDocsQuery = query(historyCollection);
+                    const historySnapshot = await getDocs(historyDocsQuery);
+                    historySnapshot.forEach(async (historyDoc) => {
+                        if (historyDoc.data().maDen === originalMaDen) {
+                            await updateDoc(doc(historyCollection, historyDoc.id), {
+                                maDen: newMaDen,
+                                tenMauDen: editTenMauDen.value // Also update tenMauDen in history for consistency
+                            });
                         }
                     });
 
-                    updateAll();
                     closeModal(modalEditSample);
+                } catch (error) {
+                    console.error("Error updating document: ", error);
+                    alert("Có lỗi khi lưu thay đổi. Vui lòng thử lại.");
                 }
             });
 
             // Loan sample
             samplesTableBody.addEventListener('click', e => {
                 if(e.target.classList.contains('btn-loan')) {
-                    const maDen = e.target.dataset.maDen;
-                    const sample = samplesData.find(s => s.maDen === maDen);
+                    const docId = e.target.dataset.docId; // Use docId
+                    const sample = window.samplesData.find(s => s.id === docId);
                     document.getElementById('loan-item-name').textContent = sample.tenMauDen;
-                    document.getElementById('loan-ma-den').value = maDen;
-                    document.getElementById('loan-ngay-tra-du-kien').valueAsDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Default to 7 days
+                    document.getElementById('loan-ma-den').value = docId; // Store docId here for reference
+                    document.getElementById('loan-ngay-tra-du-kien').valueAsDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
                     
-                    // Clear previous project if any for this loan
                     loanDuAnInput.value = '';
                     openModal(modalLoanSample);
                 }
             });
 
-            formLoanSample.addEventListener('submit', (e) => {
+            formLoanSample.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const maDen = document.getElementById('loan-ma-den').value;
-                const sample = samplesData.find(s => s.maDen === maDen);
+                const docId = document.getElementById('loan-ma-den').value; // Retrieve docId
+                const sample = window.samplesData.find(s => s.id === docId);
                 const today = new Date().toISOString().split('T')[0];
                 
-                sample.tinhTrang = 'Đã Mượn';
-                sample.nguoiMuon = document.getElementById('loan-nguoi-muon').value;
-                sample.sdtEmail = document.getElementById('loan-sdt-email').value;
-                sample.ngayMuon = today;
-                sample.ngayTraDuKien = document.getElementById('loan-ngay-tra-du-kien').value;
-                sample.duAn = document.getElementById('loan-du-an').value; // Save project to sample data
+                // Update sample status in Firestore
+                try {
+                    await updateDoc(doc(samplesCollection, docId), {
+                        tinhTrang: 'Đã Mượn',
+                        nguoiMuon: document.getElementById('loan-nguoi-muon').value,
+                        sdtEmail: document.getElementById('loan-sdt-email').value,
+                        ngayMuon: today,
+                        ngayTraDuKien: document.getElementById('loan-ngay-tra-du-kien').value,
+                        duAn: document.getElementById('loan-du-an').value,
+                    });
 
-                historyData.unshift({
-                    id: 'LS' + String(historyData.length + 1).padStart(3, '0'),
-                    maDen: sample.maDen,
-                    tenMauDen: sample.tenMauDen,
-                    viTriKhiMuon: sample.viTri, // Store viTri when borrowed
-                    nguoiMuon: sample.nguoiMuon,
-                    sdtEmail: sample.sdtEmail,
-                    ngayMuon: sample.ngayMuon,
-                    ngayTraDuKien: sample.ngayTraDuKien,
-                    duAn: sample.duAn, // Save project to history
-                    tinhTrangKhiMuon: document.getElementById('loan-tinh-trang-khi-muon').value,
-                    ngayTraThucTe: '',
-                    tinhTrangKhiTra: ''
-                });
+                    // Add history entry to Firestore
+                    await addDoc(historyCollection, {
+                        maDen: sample.maDen,
+                        tenMauDen: sample.tenMauDen,
+                        viTriKhiMuon: sample.viTri,
+                        nguoiMuon: document.getElementById('loan-nguoi-muon').value,
+                        sdtEmail: document.getElementById('loan-sdt-email').value,
+                        ngayMuon: today,
+                        ngayTraDuKien: document.getElementById('loan-ngay-tra-du-kien').value,
+                        duAn: document.getElementById('loan-du-an').value,
+                        ngayTraThucTe: '',
+                        tinhTrangKhiTra: '',
+                        sampleDocId: docId // Reference to the samples document
+                    });
 
-                updateAll();
-                closeModal(modalLoanSample);
-                e.target.reset();
+                    closeModal(modalLoanSample);
+                    e.target.reset();
+                } catch (error) {
+                    console.error("Error during loan operation: ", error);
+                    alert("Có lỗi khi cho mượn đèn. Vui lòng thử lại.");
+                }
             });
 
             // Return sample
-            // Note: The btn-return listener is now on both samplesTableBody and outstandingLoansTableBody for direct return action
             document.querySelectorAll('#samples-table-body, #outstanding-loans-table-body').forEach(table => {
                 table.addEventListener('click', e => {
                     if(e.target.classList.contains('btn-return')) {
-                        const maDen = e.target.dataset.maDen;
-                        const sample = samplesData.find(s => s.maDen === maDen);
+                        const docId = e.target.dataset.docId; // Use docId
+                        const sample = window.samplesData.find(s => s.id === docId);
                         document.getElementById('return-item-name').textContent = sample.tenMauDen;
-                        document.getElementById('return-ma-den').value = maDen;
+                        document.getElementById('return-ma-den').value = docId; // Store docId here
                         openModal(modalReturnSample);
                     }
                 });
             });
 
-
-            formReturnSample.addEventListener('submit', e => {
+            formReturnSample.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const maDen = document.getElementById('return-ma-den').value;
-                const sample = samplesData.find(s => s.maDen === maDen);
-                const historyItem = historyData.find(h => h.maDen === maDen && h.ngayTraThucTe === '');
+                const docId = document.getElementById('return-ma-den').value; // Retrieve docId
+                const sample = window.samplesData.find(s => s.id === docId);
                 const today = new Date().toISOString().split('T')[0];
 
-                sample.tinhTrang = 'Tại Showroom';
-                sample.nguoiMuon = '';
-                sample.sdtEmail = '';
-                sample.ngayMuon = '';
-                sample.ngayTraDuKien = '';
-                sample.duAn = ''; // Clear project from sample data when returned
+                // Update sample status in Firestore
+                try {
+                    await updateDoc(doc(samplesCollection, docId), {
+                        tinhTrang: 'Tại Showroom',
+                        nguoiMuon: '',
+                        sdtEmail: '',
+                        ngayMuon: '',
+                        ngayTraDuKien: '',
+                        duAn: '',
+                    });
 
-                if (historyItem) {
-                    historyItem.ngayTraThucTe = today;
-                    historyItem.tinhTrangKhiTra = document.getElementById('return-tinh-trang-khi-tra').value;
+                    // Update the corresponding history entry
+                    // Find the outstanding history item by sampleDocId and empty ngayTraThucTe
+                    const historyQuery = query(historyCollection);
+                    const historySnapshot = await getDocs(historyQuery);
+                    let outstandingHistoryDoc = null;
+                    historySnapshot.forEach(doc => {
+                        if (doc.data().sampleDocId === docId && doc.data().ngayTraThucTe === '') {
+                            outstandingHistoryDoc = doc;
+                        }
+                    });
+
+                    if (outstandingHistoryDoc) {
+                        await updateDoc(doc(historyCollection, outstandingHistoryDoc.id), {
+                            ngayTraThucTe: today,
+                            tinhTrangKhiTra: document.getElementById('return-tinh-trang-khi-tra').value,
+                        });
+                    } else {
+                        console.warn("No outstanding history found for this sample. Creating a new one for return.");
+                        // Fallback: Add a new history entry for return if somehow no outstanding one is found
+                        await addDoc(historyCollection, {
+                            maDen: sample.maDen,
+                            tenMauDen: sample.tenMauDen,
+                            viTriKhiMuon: sample.viTri, // Store viTri when borrowed
+                            nguoiMuon: sample.nguoiMuon, // Should be populated from current sample loan data
+                            sdtEmail: sample.sdtEmail, // Should be populated from current sample loan data
+                            ngayMuon: sample.ngayMuon, // Should be populated from current sample loan data
+                            ngayTraDuKien: sample.ngayTraDuKien, // Should be populated from current sample loan data
+                            duAn: sample.duAn,
+                            ngayTraThucTe: today,
+                            tinhTrangKhiTra: document.getElementById('return-tinh-trang-khi-tra').value,
+                            sampleDocId: docId
+                        });
+                    }
+                    
+                    closeModal(modalReturnSample);
+                    e.target.reset();
+                } catch (error) {
+                    console.error("Error during return operation: ", error);
+                    alert("Có lỗi khi nhận lại đèn. Vui lòng thử lại.");
                 }
-                
-                updateAll();
-                closeModal(modalReturnSample);
-                e.target.reset();
             });
-
-            // --- INITIAL LOAD ---
-            updateAll();
         });
     </script>
-
 </body>
 </html>
