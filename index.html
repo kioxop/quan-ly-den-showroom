@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Calm Harmony (Slate/Gray background, Muted Blue for actions, Green/Orange/Yellow for status) -->
     <!-- Application Structure Plan: A two-tab SPA. Tab 1 is a Dashboard & Management view showing current inventory status via a donut chart, key stats, an interactive table for loan/return actions, and a dedicated table for currently loaned items. Tab 2 shows a complete, searchable loan history. This structure separates the 'live' operational view from the 'archival' historical log, which is a more intuitive workflow than Excel sheets. Modals are used for data entry tasks (loaning, returning, adding items) to guide the user and prevent errors. -->
-    <!-- Visualization & Content Choices: 1. Inventory Status (Available vs. Loaned): Goal=Inform, Viz=Donut Chart, Interaction=Hover, Justification=At-a-glance overview, Lib=Chart.js/Canvas. 2. Sample List: Goal=Manage, Viz=Interactive HTML Table, Interaction=Search/Sort/Buttons, Justification=Core management interface, Lib=HTML+JS. 3. Loan/Return/Add Forms: Goal=Task Execution, Viz=Modal Forms, Interaction=User Input, Justification=Guided data entry, Lib=HTML+JS. 4. Loan History: Goal=Audit, Viz=Interactive HTML Table, Interaction=Search/Sort, Justification=Easy historical lookup, Lib=HTML+JS. 5. Product Description Generator: Goal=Enhance Data Entry, Viz=Text Area, Interaction=Button click to generate with LLM, Justification=Automate content creation for new items, Lib=Gemini API (gemini-2.0-flash). 6. Sample Image Display: Goal=Visual Identification, Viz=Image, Interaction=None, Justification=Quick visual lookup for items, Lib=HTML (img tag). 7. Project Tracking: Goal=Categorize Loans, Viz=Input Field in Modal, Column in History Table, Interaction=User Input, Justification=Associate loans with specific projects for better tracking and reporting. 8. Loaned Samples Table: Goal=Track Outstanding Loans, Viz=Filtered HTML Table, Interaction=Directly from Dashboard, Justification=Provides a quick overview of currently unreturned items for follow-up. 9. Edit Sample Form: Goal=Update Item Details, Viz=Modal Form, Interaction=User Input to modify existing data fields (name, location, image, description), Justification=Allows full data management for existing items, reducing need for re-entry. -->
+    <!-- Visualization & Content Choices: 1. Inventory Status (Available vs. Loaned): Goal=Inform, Viz=Donut Chart, Interaction=Hover, Justification=At-a-glance overview, Lib=Chart.js/Canvas. 2. Sample List: Goal=Manage, Viz=Interactive HTML Table, Interaction=Search/Sort/Buttons, Justification=Core management interface, Lib=HTML+JS. 3. Loan/Return/Add Forms: Goal=Task Execution, Viz=Modal Forms, Interaction=User Input, Justification=Guided data entry, Lib=HTML+JS. 4. Loan History: Goal=Audit, Viz=Interactive HTML Table, Interaction=Search/Sort, Justification=Easy historical lookup, Lib=HTML+JS. 5. Product Description Generator: Goal=Enhance Data Entry, Viz=Text Area, Interaction=Button click to generate with LLM, Justification=Automate content creation for new items, Lib=Gemini API (gemini-2.0-flash). 6. Sample Image Display: Goal=Visual Identification, Viz=Image, Interaction=None, Justification=Quick visual lookup for items, Lib=HTML (img tag). 7. Project Tracking: Goal=Categorize Loans, Viz=Input Field in Modal, Column in History Table, Interaction=User Input, Justification=Associate loans with specific projects for better tracking and reporting. 8. Loaned Samples Table: Goal=Track Outstanding Loans, Viz=Filtered HTML Table, Interaction=Directly from Dashboard, Justification=Provides a quick overview of currently unreturned items for follow-up. 9. Edit Sample Form: Goal=Update Item Details, Viz=Modal Form, Interaction=User Input to modify existing data fields (name, location, image, description, and now `maDen`), Justification=Allows full data management for existing items, reducing need for re-entry and ensuring data consistency. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -103,6 +103,7 @@
                                 <tr>
                                     <th scope="col" class="px-6 py-3">Mã Đèn</th>
                                     <th scope="col" class="px-6 py-3">Tên Mẫu Đèn</th>
+                                    <th scope="col" class="px-6 py-3">Vị trí Trưng Bày</th>
                                     <th scope="col" class="px-6 py-3">Người Mượn</th>
                                     <th scope="col" class="px-6 py-3">Dự án</th>
                                     <th scope="col" class="px-6 py-3">Ngày Mượn</th>
@@ -132,6 +133,7 @@
                                     <th scope="col" class="px-6 py-3">Hình Ảnh</th>
                                     <th scope="col" class="px-6 py-3">Mã Đèn</th>
                                     <th scope="col" class="px-6 py-3">Tên Mẫu Đèn</th>
+                                    <th scope="col" class="px-6 py-3">Vị trí Trưng Bày</th>
                                     <th scope="col" class="px-6 py-3">Trạng Thái</th>
                                     <th scope="col" class="px-6 py-3">Người Mượn Hiện Tại</th>
                                     <th scope="col" class="px-6 py-3">Hành Động</th>
@@ -159,6 +161,8 @@
                                 <tr>
                                     <th scope="col" class="px-6 py-3">ID Lượt</th>
                                     <th scope="col" class="px-6 py-3">Mã Đèn</th>
+                                    <th scope="col" class="px-6 py-3">Tên Mẫu Đèn</th>
+                                    <!-- Removed: <th scope="col" class="px-6 py-3">Vị trí Mẫu Đèn</th> -->
                                     <th scope="col" class="px-6 py-3">Người Mượn</th>
                                     <th scope="col" class="px-6 py-3">Dự án</th>
                                     <th scope="col" class="px-6 py-3">Ngày Mượn</th>
@@ -224,7 +228,10 @@
                 <h3 class="text-lg font-medium">Chỉnh Sửa Mẫu Đèn: <span id="edit-item-name" class="font-bold"></span></h3>
             </div>
             <form id="form-edit-sample" class="p-6 space-y-4">
-                <input type="hidden" id="edit-ma-den">
+                <div>
+                    <label for="edit-ma-den" class="block text-sm font-medium text-slate-700">Mã Đèn</label>
+                    <input type="text" id="edit-ma-den" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
                 <div>
                     <label for="edit-ten-mau-den" class="block text-sm font-medium text-slate-700">Tên Mẫu Đèn</label>
                     <input type="text" id="edit-ten-mau-den" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
@@ -325,8 +332,8 @@
             ];
 
             let historyData = [
-                { id: 'LS001', maDen: 'DB001', tenMauDen: 'Đèn bàn đọc sách LED', nguoiMuon: 'Anh Khoa', sdtEmail: '090xxxxxxx', ngayMuon: '2025-06-01', ngayTraDuKien: '2025-06-08', duAn: 'Dự án A', ngayTraThucTe: '', tinhTrangKhiMuon: 'Tốt, không trầy xước', tinhTrangKhiTra: '' },
-                { id: 'LS002', maDen: 'DC001', tenMauDen: 'Đèn cây đứng hiện đại', nguoiMuon: 'Chị Lan', sdtEmail: 'lan@email.com', ngayMuon: '2025-05-20', ngayTraDuKien: '2025-05-27', duAn: 'Dự án B', ngayTraThucTe: '2025-05-26', tinhTrangKhiMuon: 'Tốt', tinhTrangKhiTra: 'Hoàn hảo' },
+                { id: 'LS001', maDen: 'DB001', tenMauDen: 'Đèn bàn đọc sách LED', nguoiMuon: 'Anh Khoa', sdtEmail: '090xxxxxxx', ngayMuon: '2025-06-01', ngayTraDuKien: '2025-06-08', duAn: 'Dự án A', viTriKhiMuon: 'Khu vực bàn làm việc', ngayTraThucTe: '', tinhTrangKhiMuon: 'Tốt, không trầy xước', tinhTrangKhiTra: '' },
+                { id: 'LS002', maDen: 'DC001', tenMauDen: 'Đèn cây đứng hiện đại', nguoiMuon: 'Chị Lan', sdtEmail: 'lan@email.com', ngayMuon: '2025-05-20', ngayTraDuKien: '2025-05-27', duAn: 'Dự án B', viTriKhiMuon: 'Góc phòng khách', ngayTraThucTe: '2025-05-26', tinhTrangKhiMuon: 'Tốt', tinhTrangKhiTra: 'Hoàn hảo' },
             ];
 
             // --- UI ELEMENTS ---
@@ -386,7 +393,7 @@
             const renderSamplesTable = (data = samplesData) => {
                 samplesTableBody.innerHTML = '';
                 if (data.length === 0) {
-                     samplesTableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-500">Không tìm thấy mẫu đèn nào.</td></tr>`;
+                     samplesTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-slate-500">Không tìm thấy mẫu đèn nào.</td></tr>`;
                      return;
                 }
                 data.forEach(item => {
@@ -402,6 +409,7 @@
                         </td>
                         <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">${item.maDen}</td>
                         <td class="px-6 py-4">${item.tenMauDen}</td>
+                        <td class="px-6 py-4">${item.viTri || '---'}</td>
                         <td class="px-6 py-4">
                             <span class="px-2 py-1 text-xs font-medium rounded-full ${statusClass}">
                                 ${item.tinhTrang}
@@ -422,7 +430,7 @@
                 const loanedItems = samplesData.filter(s => s.tinhTrang === 'Đã Mượn');
                 outstandingLoansTableBody.innerHTML = '';
                 if (loanedItems.length === 0) {
-                     outstandingLoansTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-slate-500">Không có mẫu đèn nào đang được cho mượn.</td></tr>`;
+                     outstandingLoansTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-500">Không có mẫu đèn nào đang được cho mượn.</td></tr>`;
                      return;
                 }
                 loanedItems.forEach(item => {
@@ -431,6 +439,7 @@
                     row.innerHTML = `
                         <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">${item.maDen}</td>
                         <td class="px-6 py-4">${item.tenMauDen}</td>
+                        <td class="px-6 py-4">${item.viTri || '---'}</td>
                         <td class="px-6 py-4">${item.nguoiMuon || '---'}</td>
                         <td class="px-6 py-4">${item.duAn || '---'}</td>
                         <td class="px-6 py-4">${item.ngayMuon || '---'}</td>
@@ -446,7 +455,7 @@
             const renderHistoryTable = (data = historyData) => {
                 historyTableBody.innerHTML = '';
                  if (data.length === 0) {
-                     historyTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-slate-500">Không có dữ liệu lịch sử.</td></tr>`;
+                     historyTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-500">Không có dữ liệu lịch sử.</td></tr>`;
                      return;
                 }
                 data.forEach(item => {
@@ -455,6 +464,8 @@
                     row.innerHTML = `
                         <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">${item.id}</td>
                         <td class="px-6 py-4">${item.maDen}</td>
+                        <td class="px-6 py-4">${item.tenMauDen}</td>
+                        
                         <td class="px-6 py-4">${item.nguoiMuon}</td>
                         <td class="px-6 py-4">${item.duAn || '---'}</td>
                         <td class="px-6 py-4">${item.ngayMuon}</td>
@@ -531,7 +542,8 @@
                 const searchTerm = e.target.value.toLowerCase();
                 const filteredData = samplesData.filter(item => 
                     item.maDen.toLowerCase().includes(searchTerm) ||
-                    item.tenMauDen.toLowerCase().includes(searchTerm)
+                    item.tenMauDen.toLowerCase().includes(searchTerm) ||
+                    item.viTri.toLowerCase().includes(searchTerm) // Include viTri in search
                 );
                 renderSamplesTable(filteredData);
             });
@@ -542,6 +554,7 @@
                     item.id.toLowerCase().includes(searchTerm) ||
                     item.maDen.toLowerCase().includes(searchTerm) ||
                     item.tenMauDen.toLowerCase().includes(searchTerm) ||
+                    // item.viTriKhiMuon.toLowerCase().includes(searchTerm)) || // Exclude viTriKhiMuon from history search if not displayed
                     item.nguoiMuon.toLowerCase().includes(searchTerm) ||
                     (item.duAn && item.duAn.toLowerCase().includes(searchTerm))
                 );
@@ -634,6 +647,7 @@
                     if (sample) {
                         editItemName.textContent = sample.tenMauDen;
                         editMaDen.value = sample.maDen;
+                        editMaDen.dataset.originalMaDen = sample.maDen; // Store original maDen in a data attribute
                         editTenMauDen.value = sample.tenMauDen;
                         editViTri.value = sample.viTri;
                         editHinhAnhUrl.value = sample.hinhAnh;
@@ -694,19 +708,36 @@
 
             formEditSample.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const maDenToEdit = document.getElementById('edit-ma-den').value;
-                const sampleIndex = samplesData.findIndex(s => s.maDen === maDenToEdit);
+                const originalMaDen = document.getElementById('edit-ma-den').dataset.originalMaDen; // Retrieve original maDen from data attribute
+                const newMaDen = document.getElementById('edit-ma-den').value;
+                const sampleIndex = samplesData.findIndex(s => s.maDen === originalMaDen);
 
                 if (sampleIndex !== -1) {
+                    // Check for duplicate newMaDen, excluding the item being edited itself
+                    const isDuplicate = samplesData.some(s => s.maDen === newMaDen && s.maDen !== originalMaDen);
+                    if (isDuplicate) {
+                        alert('Mã Đèn mới đã tồn tại. Vui lòng chọn Mã Đèn khác.'); // Use alert for simplicity, could be a custom modal
+                        return;
+                    }
+
+                    // Update maDen in samplesData
+                    samplesData[sampleIndex].maDen = newMaDen;
                     samplesData[sampleIndex].tenMauDen = editTenMauDen.value;
                     samplesData[sampleIndex].viTri = editViTri.value;
                     samplesData[sampleIndex].hinhAnh = editHinhAnhUrl.value;
                     samplesData[sampleIndex].moTa = editMoTaSanPham.value;
+
+                    // Update maDen in historyData for all relevant entries
+                    historyData.forEach(item => {
+                        if (item.maDen === originalMaDen) {
+                            item.maDen = newMaDen;
+                        }
+                    });
+
                     updateAll();
                     closeModal(modalEditSample);
                 }
             });
-
 
             // Loan sample
             samplesTableBody.addEventListener('click', e => {
@@ -740,6 +771,7 @@
                     id: 'LS' + String(historyData.length + 1).padStart(3, '0'),
                     maDen: sample.maDen,
                     tenMauDen: sample.tenMauDen,
+                    viTriKhiMuon: sample.viTri, // Store viTri when borrowed
                     nguoiMuon: sample.nguoiMuon,
                     sdtEmail: sample.sdtEmail,
                     ngayMuon: sample.ngayMuon,
