@@ -45,7 +45,7 @@
             <h1 class="text-3xl font-bold text-slate-900">Trình Quản Lý Mẫu Đèn Showroom</h1>
             <p class="text-slate-600 mt-1">Công cụ giúp bạn theo dõi và quản lý các mẫu đèn một cách hiệu quả.</p>
             <div class="text-xs text-slate-500 mt-2">
-                User ID: <span id="user-id">Đang tải...</span>
+                User ID: <span id="user-id">Chỉ hiển thị với Firebase</span>
             </div>
         </header>
 
@@ -320,88 +320,23 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+        // Data stored in memory, will reset on page refresh
+        let samplesData = [
+            { maDen: 'TR001', tenMauDen: 'Đèn trần pha lê tròn', viTri: 'Kệ 1', tinhTrang: 'Tại Showroom', nguoiMuon: '', sdtEmail: '', ngayMuon: '', ngayTraDuKien: '', duAn: '', moTa: 'Một chiếc đèn trần pha lê tròn lộng lẫy, mang đến vẻ sang trọng và đẳng cấp cho không gian.', hinhAnh: 'https://placehold.co/60x60/a78bfa/ffffff?text=TR001' },
+            { maDen: 'TR002', tenMauDen: 'Đèn trần gỗ sồi vuông', viTri: 'Kệ 1', tinhTrang: 'Tại Showroom', nguoiMuon: '', sdtEmail: '', ngayMuon: '', ngayTraDuKien: '', duAn: '', moTa: 'Đèn trần gỗ sồi vuông với thiết kế tối giản, tạo cảm giác ấm cúng và gần gũi với thiên nhiên.', hinhAnh: 'https://placehold.co/60x60/8b5cf6/ffffff?text=TR002' },
+            { maDen: 'DB001', tenMauDen: 'Đèn bàn đọc sách LED', viTri: 'Khu vực bàn làm việc', tinhTrang: 'Đã Mượn', nguoiMuon: 'Anh Khoa', sdtEmail: '090xxxxxxx', ngayMuon: '2025-06-01', ngayTraDuKien: '2025-06-08', duAn: 'Dự án A', moTa: 'Đèn bàn đọc sách LED hiện đại, cung cấp ánh sáng dịu nhẹ, bảo vệ mắt, lý tưởng cho việc học tập và làm việc.', hinhAnh: 'https://placehold.co/60x60/c084fc/ffffff?text=DB001' },
+            { maDen: 'DC001', tenMauDen: 'Đèn cây đứng hiện đại', viTri: 'Góc phòng khách', tinhTrang: 'Tại Showroom', nguoiMuon: '', sdtEmail: '', ngayMuon: '', ngayTraDuKien: '', duAn: '', moTa: 'Chiếc đèn cây đứng với thiết kế thanh lịch, mang đến nguồn sáng ấn tượng và tô điểm cho không gian sống.', hinhAnh: 'https://placehold.co/60x60/e879f9/ffffff?text=DC001' },
+            { maDen: 'TT001', tenMauDen: 'Đèn thả bàn ăn cổ điển', viTri: 'Khu vực bếp', tinhTrang: 'Đang Bảo Trì', nguoiMuon: '', sdtEmail: '', ngayMuon: '', ngayTraDuKien: '', duAn: '', moTa: 'Đèn thả bàn ăn phong cách cổ điển, tạo điểm nhấn ấm cúng và sang trọng cho khu vực dùng bữa.', hinhAnh: 'https://placehold.co/60x60/f0abfc/ffffff?text=TT001' },
+        ];
 
-        // Global variables (will be provided by Canvas environment)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        let historyData = [
+            { id: 'LS001', maDen: 'DB001', tenMauDen: 'Đèn bàn đọc sách LED', nguoiMuon: 'Anh Khoa', sdtEmail: '090xxxxxxx', ngayMuon: '2025-06-01', ngayTraDuKien: '2025-06-08', duAn: 'Dự án A', viTriKhiMuon: 'Khu vực bàn làm việc', ngayTraThucTe: '', tinhTrangKhiMuon: 'Tốt, không trầy xước', tinhTrangKhiTra: '' },
+            { id: 'LS002', maDen: 'DC001', tenMauDen: 'Đèn cây đứng hiện đại', nguoiMuon: 'Chị Lan', sdtEmail: 'lan@email.com', ngayMuon: '2025-05-20', ngayTraDuKien: '2025-05-27', duAn: 'Dự án B', viTriKhiMuon: 'Góc phòng khách', ngayTraThucTe: '2025-05-26', tinhTrangKhiMuon: 'Tốt', tinhTrangKhiTra: 'Hoàn hảo' },
+        ];
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        let userId = 'anonymous'; // Default to anonymous
-        let samplesCollection;
-        let historyCollection;
-
-        // Ensure DOM is fully loaded before trying to access elements or functions
         document.addEventListener('DOMContentLoaded', () => {
-            const userIdDisplay = document.getElementById('user-id');
-            let isAuthReady = false; // Flag to ensure auth is ready before Firestore ops
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    userIdDisplay.textContent = userId;
-                    samplesCollection = collection(db, `artifacts/${appId}/users/${userId}/samples`);
-                    historyCollection = collection(db, `artifacts/${appId}/users/${userId}/history`);
-                    isAuthReady = true;
-                    // Start listening to Firestore after authentication is ready
-                    listenToFirestoreData();
-                } else {
-                    // Sign in anonymously if no token is provided or user logs out
-                    try {
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (error) {
-                        console.error("Firebase Auth Error:", error);
-                        userIdDisplay.textContent = 'Lỗi đăng nhập';
-                        // Still try to listen to data even if anonymous sign-in fails
-                        samplesCollection = collection(db, `artifacts/${appId}/users/${userId}/samples`);
-                        historyCollection = collection(db, `artifacts/${appId}/users/${userId}/history`);
-                        isAuthReady = true;
-                        listenToFirestoreData();
-                    }
-                }
-            });
-
-            // Local data arrays (will be updated by Firestore snapshots)
-            window.samplesData = []; // Initialize as empty array
-            window.historyData = []; // Initialize as empty array
-
-            const listenToFirestoreData = () => {
-                if (!isAuthReady) {
-                    console.warn("Firestore listeners called before authentication is ready.");
-                    return;
-                }
-                
-                // Real-time listener for samples
-                onSnapshot(query(samplesCollection), (snapshot) => {
-                    window.samplesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    updateAll(); // Re-render tables and dashboard
-                }, (error) => {
-                    console.error("Error fetching samples: ", error);
-                });
-
-                // Real-time listener for history
-                onSnapshot(query(historyCollection), (snapshot) => {
-                    window.historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    updateAll(); // Re-render tables and dashboard
-                }, (error) => {
-                    console.error("Error fetching history: ", error);
-                });
-            };
-
-            // --- UI ELEMENTS (remains mostly the same, but now uses window.samplesData/historyData) ---
+            // --- UI ELEMENTS ---
             const tabDashboard = document.getElementById('tab-dashboard');
             const tabHistory = document.getElementById('tab-history');
             const contentDashboard = document.getElementById('content-dashboard');
@@ -455,7 +390,7 @@
                 }
             };
             
-            const renderSamplesTable = (data = window.samplesData) => {
+            const renderSamplesTable = (data = samplesData) => {
                 samplesTableBody.innerHTML = '';
                 if (data.length === 0) {
                      samplesTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-slate-500">Không tìm thấy mẫu đèn nào.</td></tr>`;
@@ -482,9 +417,9 @@
                         </td>
                         <td class="px-6 py-4">${item.nguoiMuon || '---'}</td>
                         <td class="px-6 py-4 flex items-center space-x-2">
-                            ${item.tinhTrang === 'Tại Showroom' ? `<button class="btn-loan text-blue-600 hover:text-blue-800 font-semibold" data-ma-den="${item.maDen}" data-doc-id="${item.id}">Cho Mượn</button>` : ''}
-                            ${item.tinhTrang === 'Đã Mượn' ? `<button class="btn-return text-green-600 hover:text-green-800 font-semibold" data-ma-den="${item.maDen}" data-doc-id="${item.id}">Nhận Lại</button>` : ''}
-                            <button class="btn-edit text-slate-600 hover:text-slate-800 font-semibold" data-ma-den="${item.maDen}" data-doc-id="${item.id}">Sửa</button>
+                            ${item.tinhTrang === 'Tại Showroom' ? `<button class="btn-loan text-blue-600 hover:text-blue-800 font-semibold" data-ma-den="${item.maDen}">Cho Mượn</button>` : ''}
+                            ${item.tinhTrang === 'Đã Mượn' ? `<button class="btn-return text-green-600 hover:text-green-800 font-semibold" data-ma-den="${item.maDen}">Nhận Lại</button>` : ''}
+                            <button class="btn-edit text-slate-600 hover:text-slate-800 font-semibold" data-ma-den="${item.maDen}">Sửa</button>
                         </td>
                     `;
                     samplesTableBody.appendChild(row);
@@ -492,7 +427,7 @@
             };
 
             const renderOutstandingLoansTable = () => {
-                const loanedItems = window.samplesData.filter(s => s.tinhTrang === 'Đã Mượn');
+                const loanedItems = samplesData.filter(s => s.tinhTrang === 'Đã Mượn');
                 outstandingLoansTableBody.innerHTML = '';
                 if (loanedItems.length === 0) {
                      outstandingLoansTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-500">Không có mẫu đèn nào đang được cho mượn.</td></tr>`;
@@ -510,14 +445,14 @@
                         <td class="px-6 py-4">${item.ngayMuon || '---'}</td>
                         <td class="px-6 py-4">${item.ngayTraDuKien || '---'}</td>
                         <td class="px-6 py-4">
-                            <button class="btn-return text-green-600 hover:text-green-800 font-semibold" data-ma-den="${item.maDen}" data-doc-id="${item.id}">Nhận Lại</button>
+                            <button class="btn-return text-green-600 hover:text-green-800 font-semibold" data-ma-den="${item.maDen}">Nhận Lại</button>
                         </td>
                     `;
                     outstandingLoansTableBody.appendChild(row);
                 });
             };
 
-            const renderHistoryTable = (data = window.historyData) => {
+            const renderHistoryTable = (data = historyData) => {
                 historyTableBody.innerHTML = '';
                  if (data.length === 0) {
                      historyTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-500">Không có dữ liệu lịch sử.</td></tr>`;
@@ -527,7 +462,7 @@
                     const row = document.createElement('tr');
                     row.className = 'bg-white border-b hover:bg-slate-50';
                     row.innerHTML = `
-                        <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">${item.id || item.docId}</td>
+                        <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">${item.id}</td>
                         <td class="px-6 py-4">${item.maDen}</td>
                         <td class="px-6 py-4">${item.tenMauDen}</td>
                         <td class="px-6 py-4">${item.nguoiMuon}</td>
@@ -541,10 +476,10 @@
             };
             
             const renderDashboard = () => {
-                const total = window.samplesData.length;
-                const loaned = window.samplesData.filter(s => s.tinhTrang === 'Đã Mượn').length;
-                const available = window.samplesData.filter(s => s.tinhTrang === 'Tại Showroom').length;
-                const maintenance = window.samplesData.filter(s => s.tinhTrang === 'Đang Bảo Trì').length;
+                const total = samplesData.length;
+                const loaned = samplesData.filter(s => s.tinhTrang === 'Đã Mượn').length;
+                const available = samplesData.filter(s => s.tinhTrang === 'Tại Showroom').length;
+                const maintenance = samplesData.filter(s => s.tinhTrang === 'Đang Bảo Trì').length;
 
                 document.getElementById('total-samples').textContent = total;
                 document.getElementById('loaned-samples').textContent = loaned;
@@ -604,7 +539,7 @@
             
             searchSamplesInput.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
-                const filteredData = window.samplesData.filter(item => 
+                const filteredData = samplesData.filter(item => 
                     item.maDen.toLowerCase().includes(searchTerm) ||
                     item.tenMauDen.toLowerCase().includes(searchTerm) ||
                     item.viTri.toLowerCase().includes(searchTerm)
@@ -614,7 +549,7 @@
             
              searchHistoryInput.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
-                const filteredData = window.historyData.filter(item => 
+                const filteredData = historyData.filter(item => 
                     item.id.toLowerCase().includes(searchTerm) ||
                     item.maDen.toLowerCase().includes(searchTerm) ||
                     item.tenMauDen.toLowerCase().includes(searchTerm) ||
@@ -648,14 +583,18 @@
                     moTa: newMoTaSanPham.value,
                     hinhAnh: newHinhAnhUrl.value
                 };
-                try {
-                    await addDoc(samplesCollection, newSampleData);
-                    closeModal(modalAddSample);
-                    e.target.reset();
-                } catch (error) {
-                    console.error("Error adding document: ", error);
-                    alert("Có lỗi khi thêm mẫu đèn. Vui lòng thử lại.");
+                
+                const isDuplicate = samplesData.some(s => s.maDen === newSampleData.maDen);
+                if (isDuplicate) {
+                    alert('Mã Đèn này đã tồn tại. Vui lòng sử dụng Mã Đèn khác.');
+                    return;
                 }
+
+                samplesData.unshift(newSampleData);
+                updateAll();
+                closeModal(modalAddSample);
+                e.target.reset();
+                alert("Thêm mẫu đèn mới thành công!");
             });
 
             // Gemini API Integration: Generate Product Description for Add Modal
@@ -678,7 +617,7 @@
                     let chatHistory = [];
                     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
                     const payload = { contents: chatHistory };
-                    const apiKey = "";
+                    const apiKey = ""; // Keep API Key empty, Canvas will provide if applicable
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
                     
                     const response = await fetch(apiUrl, {
@@ -709,13 +648,12 @@
             // Edit Sample
             samplesTableBody.addEventListener('click', e => {
                 if(e.target.classList.contains('btn-edit')) {
-                    const docId = e.target.dataset.docId;
-                    const sample = window.samplesData.find(s => s.id === docId);
+                    const maDen = e.target.dataset.maDen;
+                    const sample = samplesData.find(s => s.maDen === maDen);
                     if (sample) {
                         editItemName.textContent = sample.tenMauDen;
                         editMaDen.value = sample.maDen;
                         editMaDen.dataset.originalMaDen = sample.maDen; // Store original maDen
-                        editMaDen.dataset.docId = docId; // Store docId for update
                         editTenMauDen.value = sample.tenMauDen;
                         editViTri.value = sample.viTri;
                         editHinhAnhUrl.value = sample.hinhAnh;
@@ -745,7 +683,7 @@
                     let chatHistory = [];
                     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
                     const payload = { contents: chatHistory };
-                    const apiKey = "";
+                    const apiKey = ""; // Keep API Key empty, Canvas will provide if applicable
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
                     
                     const response = await fetch(apiUrl, {
@@ -773,60 +711,45 @@
                 }
             });
 
-            formEditSample.addEventListener('submit', async (e) => {
+            formEditSample.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const originalMaDen = editMaDen.dataset.originalMaDen;
-                const docIdToUpdate = editMaDen.dataset.docId; // Get the Firestore document ID
-                const newMaDen = editMaDen.value;
+                const originalMaDen = document.getElementById('edit-ma-den').dataset.originalMaDen;
+                const newMaDen = document.getElementById('edit-ma-den').value;
+                const sampleIndex = samplesData.findIndex(s => s.maDen === originalMaDen);
 
-                // Check for duplicate newMaDen if it's being changed
-                if (newMaDen !== originalMaDen) {
-                    const isDuplicate = window.samplesData.some(s => s.maDen === newMaDen);
+                if (sampleIndex !== -1) {
+                    const isDuplicate = samplesData.some(s => s.maDen === newMaDen && s.maDen !== originalMaDen);
                     if (isDuplicate) {
                         alert('Mã Đèn mới đã tồn tại. Vui lòng chọn Mã Đèn khác.');
                         return;
                     }
-                }
 
-                try {
-                    // Update the sample document in Firestore
-                    await setDoc(doc(samplesCollection, docIdToUpdate), {
-                        maDen: newMaDen,
-                        tenMauDen: editTenMauDen.value,
-                        viTri: editViTri.value,
-                        hinhAnh: editHinhAnhUrl.value,
-                        moTa: editMoTaSanPham.value,
-                        // Preserve existing fields like tinhTrang, nguoiMuon, etc.
-                        // Fetch the current sample data to merge, or use updateDoc for specific fields
-                        ...window.samplesData.find(s => s.id === docIdToUpdate)
-                    }, { merge: true });
+                    samplesData[sampleIndex].maDen = newMaDen;
+                    samplesData[sampleIndex].tenMauDen = editTenMauDen.value;
+                    samplesData[sampleIndex].viTri = editViTri.value;
+                    samplesData[sampleIndex].hinhAnh = editHinhAnhUrl.value;
+                    samplesData[sampleIndex].moTa = editMoTaSanPham.value;
 
-                    // Update maDen in history documents
-                    const historyDocsQuery = query(historyCollection);
-                    const historySnapshot = await getDocs(historyDocsQuery);
-                    historySnapshot.forEach(async (historyDoc) => {
-                        if (historyDoc.data().maDen === originalMaDen) {
-                            await updateDoc(doc(historyCollection, historyDoc.id), {
-                                maDen: newMaDen,
-                                tenMauDen: editTenMauDen.value // Also update tenMauDen in history for consistency
-                            });
+                    // Update maDen in historyData for all relevant entries
+                    historyData.forEach(item => {
+                        if (item.maDen === originalMaDen) {
+                            item.maDen = newMaDen;
                         }
                     });
 
+                    updateAll();
                     closeModal(modalEditSample);
-                } catch (error) {
-                    console.error("Error updating document: ", error);
-                    alert("Có lỗi khi lưu thay đổi. Vui lòng thử lại.");
+                    alert("Lưu thay đổi mẫu đèn thành công!");
                 }
             });
 
             // Loan sample
             samplesTableBody.addEventListener('click', e => {
                 if(e.target.classList.contains('btn-loan')) {
-                    const docId = e.target.dataset.docId; // Use docId
-                    const sample = window.samplesData.find(s => s.id === docId);
+                    const maDen = e.target.dataset.maDen;
+                    const sample = samplesData.find(s => s.maDen === maDen);
                     document.getElementById('loan-item-name').textContent = sample.tenMauDen;
-                    document.getElementById('loan-ma-den').value = docId; // Store docId here for reference
+                    document.getElementById('loan-ma-den').value = maDen;
                     document.getElementById('loan-ngay-tra-du-kien').valueAsDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
                     
                     loanDuAnInput.value = '';
@@ -834,118 +757,95 @@
                 }
             });
 
-            formLoanSample.addEventListener('submit', async (e) => {
+            formLoanSample.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const docId = document.getElementById('loan-ma-den').value; // Retrieve docId
-                const sample = window.samplesData.find(s => s.id === docId);
+                const maDen = document.getElementById('loan-ma-den').value;
+                const sample = samplesData.find(s => s.maDen === maDen);
                 const today = new Date().toISOString().split('T')[0];
                 
-                // Update sample status in Firestore
-                try {
-                    await updateDoc(doc(samplesCollection, docId), {
-                        tinhTrang: 'Đã Mượn',
-                        nguoiMuon: document.getElementById('loan-nguoi-muon').value,
-                        sdtEmail: document.getElementById('loan-sdt-email').value,
-                        ngayMuon: today,
-                        ngayTraDuKien: document.getElementById('loan-ngay-tra-du-kien').value,
-                        duAn: document.getElementById('loan-du-an').value,
-                    });
+                sample.tinhTrang = 'Đã Mượn';
+                sample.nguoiMuon = document.getElementById('loan-nguoi-muon').value;
+                sample.sdtEmail = document.getElementById('loan-sdt-email').value;
+                sample.ngayMuon = today;
+                sample.ngayTraDuKien = document.getElementById('loan-ngay-tra-du-kien').value;
+                sample.duAn = document.getElementById('loan-du-an').value;
 
-                    // Add history entry to Firestore
-                    await addDoc(historyCollection, {
-                        maDen: sample.maDen,
-                        tenMauDen: sample.tenMauDen,
-                        viTriKhiMuon: sample.viTri, // Store viTri when borrowed
-                        nguoiMuon: document.getElementById('loan-nguoi-muon').value,
-                        sdtEmail: document.getElementById('loan-sdt-email').value,
-                        ngayMuon: today,
-                        ngayTraDuKien: document.getElementById('loan-ngay-tra-du-kien').value,
-                        duAn: document.getElementById('loan-du-an').value,
-                        tinhTrangKhiMuon: document.getElementById('loan-tinh-trang-khi-muon').value,
-                        ngayTraThucTe: '',
-                        tinhTrangKhiTra: '',
-                        sampleDocId: docId // Reference to the samples document
-                    });
+                historyData.unshift({
+                    id: 'LS' + String(historyData.length + 1).padStart(3, '0'),
+                    maDen: sample.maDen,
+                    tenMauDen: sample.tenMauDen,
+                    viTriKhiMuon: sample.viTri,
+                    nguoiMuon: sample.nguoiMuon,
+                    sdtEmail: sample.sdtEmail,
+                    ngayMuon: sample.ngayMuon,
+                    ngayTraDuKien: sample.ngayTraDuKien,
+                    duAn: sample.duAn,
+                    tinhTrangKhiMuon: document.getElementById('loan-tinh-trang-khi-muon').value,
+                    ngayTraThucTe: '',
+                    tinhTrangKhiTra: ''
+                });
 
-                    closeModal(modalLoanSample);
-                    e.target.reset();
-                } catch (error) {
-                    console.error("Error during loan operation: ", error);
-                    alert("Có lỗi khi cho mượn đèn. Vui lòng thử lại.");
-                }
+                updateAll();
+                closeModal(modalLoanSample);
+                e.target.reset();
+                alert("Cho mượn đèn thành công!");
             });
 
             // Return sample
             document.querySelectorAll('#samples-table-body, #outstanding-loans-table-body').forEach(table => {
                 table.addEventListener('click', e => {
                     if(e.target.classList.contains('btn-return')) {
-                        const docId = e.target.dataset.docId; // Use docId
-                        const sample = window.samplesData.find(s => s.id === docId);
+                        const maDen = e.target.dataset.maDen;
+                        const sample = samplesData.find(s => s.maDen === maDen);
                         document.getElementById('return-item-name').textContent = sample.tenMauDen;
-                        document.getElementById('return-ma-den').value = docId; // Store docId here
+                        document.getElementById('return-ma-den').value = maDen;
                         openModal(modalReturnSample);
                     }
                 });
             });
 
-            formReturnSample.addEventListener('submit', async (e) => {
+            formReturnSample.addEventListener('submit', e => {
                 e.preventDefault();
-                const docId = document.getElementById('return-ma-den').value; // Retrieve docId
-                const sample = window.samplesData.find(s => s.id === docId);
+                const maDen = document.getElementById('return-ma-den').value;
+                const sample = samplesData.find(s => s.maDen === maDen);
+                const historyItem = historyData.find(h => h.maDen === maDen && h.ngayTraThucTe === '');
                 const today = new Date().toISOString().split('T')[0];
 
-                // Update sample status in Firestore
-                try {
-                    await updateDoc(doc(samplesCollection, docId), {
-                        tinhTrang: 'Tại Showroom',
-                        nguoiMuon: '',
-                        sdtEmail: '',
-                        ngayMuon: '',
-                        ngayTraDuKien: '',
-                        duAn: '',
-                    });
+                sample.tinhTrang = 'Tại Showroom';
+                sample.nguoiMuon = '';
+                sample.sdtEmail = '';
+                sample.ngayMuon = '';
+                sample.ngayTraDuKien = '';
+                sample.duAn = '';
 
-                    // Update the corresponding history entry
-                    // Find the outstanding history item by sampleDocId and empty ngayTraThucTe
-                    const historyQuery = query(historyCollection);
-                    const historySnapshot = await getDocs(historyQuery);
-                    let outstandingHistoryDoc = null;
-                    historySnapshot.forEach(doc => {
-                        if (doc.data().sampleDocId === docId && doc.data().ngayTraThucTe === '') {
-                            outstandingHistoryDoc = doc;
-                        }
+                if (historyItem) {
+                    historyItem.ngayTraThucTe = today;
+                    historyItem.tinhTrangKhiTra = document.getElementById('return-tinh-trang-khi-tra').value;
+                } else {
+                    console.warn("No outstanding history found for this sample. Creating a new one for return.");
+                    historyData.unshift({
+                        id: 'LS' + String(historyData.length + 1).padStart(3, '0'),
+                        maDen: sample.maDen,
+                        tenMauDen: sample.tenMauDen,
+                        viTriKhiMuon: sample.viTri,
+                        nguoiMuon: sample.nguoiMuon,
+                        sdtEmail: sample.sdtEmail,
+                        ngayMuon: sample.ngayMuon,
+                        ngayTraDuKien: sample.ngayTraDuKien,
+                        duAn: sample.duAn,
+                        ngayTraThucTe: today,
+                        tinhTrangKhiTra: document.getElementById('return-tinh-trang-khi-tra').value,
                     });
-
-                    if (outstandingHistoryDoc) {
-                        await updateDoc(doc(historyCollection, outstandingHistoryDoc.id), {
-                            ngayTraThucTe: today,
-                            tinhTrangKhiTra: document.getElementById('return-tinh-trang-khi-tra').value,
-                        });
-                    } else {
-                        console.warn("No outstanding history found for this sample. Creating a new one for return.");
-                        // Fallback: Add a new history entry for return if somehow no outstanding one is found
-                        await addDoc(historyCollection, {
-                            maDen: sample.maDen,
-                            tenMauDen: sample.tenMauDen,
-                            viTriKhiMuon: sample.viTri, // Store viTri when borrowed
-                            nguoiMuon: sample.nguoiMuon, // Should be populated from current sample loan data
-                            sdtEmail: sample.sdtEmail, // Should be populated from current sample loan data
-                            ngayMuon: sample.ngayMuon, // Should be populated from current sample loan data
-                            ngayTraDuKien: sample.ngayTraDuKien, // Should be populated from current sample loan data
-                            duAn: sample.duAn,
-                            ngayTraThucTe: today,
-                            tinhTrangKhiTra: document.getElementById('return-tinh-trang-khi-tra').value,
-                            sampleDocId: docId
-                        });
-                    }
-                    
-                    closeModal(modalReturnSample);
-                    e.target.reset();
-                } catch (error) {
-                    console.error("Error during return operation: ", error);
-                    alert("Có lỗi khi nhận lại đèn. Vui lòng thử lại.");
                 }
+                
+                updateAll();
+                closeModal(modalReturnSample);
+                e.target.reset();
+                alert("Nhận lại đèn thành công!");
             });
+
+            // --- INITIAL LOAD ---
+            updateAll();
         });
     </script>
 </body>
